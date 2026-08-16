@@ -36,3 +36,12 @@ vendor/page-flip.browser.js ← 翻頁引擎（StPageFlip，離線可用）
 ## 授權
 
 翻頁引擎 [StPageFlip](https://github.com/Nodlik/StPageFlip) 為 MIT 授權。Demo 圖片為 [Lorem Picsum](https://picsum.photos) 佔位圖。
+
+## 音樂翻頁電子書（music-flipbook.html）
+
+同一本書配一首歌，一頁一段歌詞。讀者按播放聽歌、自己翻頁，翻到哪一頁就顯示那一段歌詞。
+
+- **不自動翻頁**（2026-08-16 定案）。
+- 要改的只有檔案最上方兩個常數：`SONG_URL`（音檔網址）與 `LYRICS`（一格一頁的歌詞陣列）。
+- 音檔開發期可直接吃 SUNO 分享頁背後的 mp3（`cdn1.suno.ai/<id>.mp3`，有開 CORS）；交付版建議下載放進 `audio/`。
+- 錄音旁白版與時間軸自動翻頁版已移除，要找在 commit `6c99e72` 之前的歷史。
