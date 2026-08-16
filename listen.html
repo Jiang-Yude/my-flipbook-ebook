@@ -4,67 +4,114 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>有聲翻頁書｜旁白＋配樂自動播</title>
+<title>會唱歌的翻頁繪本</title>
 <script src="vendor/page-flip.browser.js"></script>
 <style>
   :root{ --bg:#f4f1ea; --card:#fff; --ink:#2a251f; --muted:#6f665b; --line:#ded7ca;
-         --brand:#2f6f5e; --ok:#1f7a4d; --warn:#8a5a12; }
+         --brand:#2f6f5e; --accent:#b3372c; --ok:#1f7a4d; --warn:#8a5a12; }
   @media (prefers-color-scheme: dark){
     :root{ --bg:#17150f; --card:#221f19; --ink:#efe9dd; --muted:#a89e90; --line:#3a342a;
-           --brand:#4f9c85; --ok:#5fc593; --warn:#d9ac5e; }
+           --brand:#4f9c85; --accent:#d4675a; --ok:#5fc593; --warn:#d9ac5e; }
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;
     font-size:17px;line-height:1.7}
-  .wrap{max-width:820px;margin:0 auto;padding:20px 16px 48px}
-  h1{font-size:23px;margin:4px 0 6px}
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+  h1{font-size:24px;margin:4px 0 6px}
   .sub{color:var(--muted);font-size:16px;margin:0 0 18px}
   #book{width:100%;max-width:760px;margin:0 auto}
   .page{background:var(--card);overflow:hidden}
   .page img{width:100%;height:100%;object-fit:cover;display:block}
-  .bar{max-width:760px;margin:16px auto 0;background:var(--card);border:1px solid var(--line);
+
+  .lyric{max-width:760px;margin:16px auto 0;min-height:64px;text-align:center;
+    font-size:21px;line-height:1.75;color:var(--ink);padding:8px 10px}
+  .lyric.dim{color:var(--muted);font-size:17px}
+
+  .bar{max-width:760px;margin:14px auto 0;background:var(--card);border:1px solid var(--line);
     border-radius:14px;padding:14px 16px}
   button{font:inherit;font-size:17px;font-weight:600;border:1px solid var(--line);border-radius:10px;
     padding:13px 16px;cursor:pointer;background:var(--card);color:var(--ink)}
   button.primary{background:var(--brand);color:#fff;border-color:transparent}
+  button.mark{background:var(--accent);color:#fff;border-color:transparent;width:100%;
+    font-size:20px;padding:20px 16px;margin-top:10px}
+  button:disabled{opacity:.45;cursor:default}
   .ctrls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .ctrls button{flex:0 0 auto}
   .status{font-size:15px;color:var(--muted);margin-top:10px;white-space:pre-wrap;min-height:1.4em}
-  .status.bad{color:#b3372c}
+  .status.bad{color:var(--accent)} .status.ok{color:var(--ok)}
   label{font-size:15px;color:var(--muted);display:flex;align-items:center;gap:8px}
-  input[type=range]{width:120px}
+  input[type=range]{width:110px}
+  .tabs{display:flex;gap:8px;max-width:760px;margin:0 auto 12px}
+  .tabs button{flex:1}
+  .tabs button.on{background:var(--brand);color:#fff;border-color:transparent}
+  .panel{display:none} .panel.on{display:block}
+  .marks{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;font-size:15px}
+  .mk{display:flex;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .mk:last-child{border-bottom:0}
+  .mk .n{flex:0 0 46px;font-weight:700;color:var(--muted)}
+  .mk .t{flex:0 0 74px;font-variant-numeric:tabular-nums}
+  .mk .l{flex:1;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .note{font-size:14px;color:var(--muted);background:rgba(217,172,94,.16);
     border-left:3px solid var(--warn);border-radius:0 8px 8px 0;padding:10px 12px;margin-top:14px}
+  textarea{width:100%;min-height:150px;font:inherit;font-size:15px;padding:10px;border-radius:9px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical;margin-top:8px}
+  input[type=text]{width:100%;font:inherit;font-size:15px;padding:10px;border-radius:9px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-top:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>有聲翻頁書</h1>
-  <p class="sub">按播放，旁白會自己念，念完自動翻下一頁，配樂在底下墊著。</p>
+  <h1>會唱歌的翻頁繪本</h1>
+  <p class="sub">歌詞就是旁白。歌播到哪一段，書就翻到哪一頁。</p>
+
+  <div class="tabs">
+    <button id="tabPlay" class="on">播放</button>
+    <button id="tabSync">校時（設定每頁在第幾秒翻）</button>
+  </div>
 
   <div id="book"></div>
+  <div class="lyric dim" id="lyric">按播放開始</div>
 
-  <div class="bar">
+  <!-- 播放 -->
+  <div class="bar panel on" id="panelPlay">
     <div class="ctrls">
       <button id="play" class="primary">▶ 播放</button>
       <button id="stop">■ 停止</button>
-      <label><input type="checkbox" id="bgmOn" checked> 配樂</label>
-      <label>音量 <input type="range" id="bgmVol" min="0" max="100" value="30"></label>
+      <label>音量 <input type="range" id="vol" min="0" max="100" value="85"></label>
+      <span class="status" id="clock" style="margin:0 0 0 auto;"></span>
     </div>
-    <div class="status" id="status">準備好了。</div>
-    <div class="note">
-      瀏覽器規定有聲音的內容不能自動播，所以一定要先按一次「播放」。
-      旁白音檔放在 <b>audio/</b>，對照表是 <b>narration.json</b>，都由錄音工作台匯出。
+    <div class="status" id="status">準備中…</div>
+    <div class="note">瀏覽器規定有聲音的內容不能自動播，所以一定要先按一次「播放」。</div>
+  </div>
+
+  <!-- 校時 -->
+  <div class="bar panel" id="panelSync">
+    <p style="margin:0 0 6px;"><b>怎麼校時</b>：按「開始校時」，歌會從頭播。聽到該翻下一頁的地方，就按下面那顆大按鈕。按滿最後一頁，按「下載 timing.json」。</p>
+    <div class="ctrls">
+      <button id="syncStart" class="primary">▶ 開始校時</button>
+      <button id="syncUndo">↩ 退回上一個</button>
+      <button id="syncReset">清空重來</button>
+      <span class="status" id="syncClock" style="margin:0 0 0 auto;"></span>
     </div>
+    <button id="mark" class="mark" disabled>翻到下一頁（第 1 頁 → 第 2 頁）</button>
+    <div class="status" id="syncStatus">還沒開始。</div>
+
+    <p style="margin:16px 0 0;"><b>歌詞</b>（一行一頁，第一行對應第 1 頁；可以留空）</p>
+    <textarea id="lyricsBox" placeholder="第一頁的歌詞&#10;第二頁的歌詞&#10;…"></textarea>
+
+    <p style="margin:14px 0 0;"><b>音檔網址</b>（SUNO 分享頁背後的 mp3，或放進 audio/ 後填相對路徑）</p>
+    <input type="text" id="srcBox">
+
+    <button id="dlTiming" class="primary" style="width:100%;margin-top:12px;">下載 timing.json</button>
+    <div class="marks" id="marks"></div>
   </div>
 </div>
 
 <script>
 (function(){
-  // 配樂：SUNO 分享頁背後的直連 mp3（已驗證可跨網域讀取）
-  // 正式版建議把檔案下載放進 audio/bgm.mp3，避免外部網址失效
-  var BGM_URL = 'https://cdn1.suno.ai/c99e202b-18bd-4038-ba07-e1deecd829ba.mp3';
+  // 預設音檔：SUNO 分享頁背後的直連 mp3（已驗證可跨網域讀取）
+  // 正式版建議下載放進 audio/song.mp3，避免外部網址失效
+  var DEFAULT_SRC = 'https://cdn1.suno.ai/c99e202b-18bd-4038-ba07-e1deecd829ba.mp3';
 
   var TOTAL = 11;
   var PAGES = [];
@@ -89,86 +136,175 @@
   });
   flip.loadFromHTML(bookEl.querySelectorAll('.page'));
 
-  var statusBox = document.getElementById('status');
-  var playBtn = document.getElementById('play');
-  var stopBtn = document.getElementById('stop');
-  var bgmOn = document.getElementById('bgmOn');
-  var bgmVol = document.getElementById('bgmVol');
+  var $ = function(id){ return document.getElementById(id); };
+  var audio = new Audio();
+  audio.crossOrigin = 'anonymous';
+  var timing = null;        // { audio, pages:[{page, at, lyric}] }
+  var marks = [];           // 校時中收集的秒數，marks[0] = 第 2 頁的時間
+  var lyrics = [];
+  var mode = 'play';
+  var syncing = false, playing = false;
 
-  var manifest = null, playing = false, cur = 0;
-  var narr = new Audio();
-  var bgm = new Audio();
-  bgm.loop = true;
-  bgm.crossOrigin = 'anonymous';
+  function fmt(s){
+    if (!isFinite(s)) return '0:00';
+    var m = Math.floor(s/60), r = Math.floor(s%60);
+    return m + ':' + String(r).padStart(2,'0');
+  }
+  function say(box, msg, cls){ box.textContent = msg; box.className = 'status' + (cls?' '+cls:''); }
 
-  function say(msg, cls){ statusBox.textContent = msg; statusBox.className = 'status' + (cls?' '+cls:''); }
-  function baseVol(){ return Number(bgmVol.value)/100; }
-  function duckVol(){ return baseVol() * 0.35; }   // 旁白講話時把配樂壓下去
-
-  fetch('narration.json', {cache:'no-store'})
-    .then(function(r){ if(!r.ok) throw new Error('沒有 narration.json'); return r.json(); })
+  // ── 載入 timing.json ─────────────────────────────
+  fetch('timing.json', {cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(j){
-      manifest = j;
-      var n = j.pages.filter(function(p){ return p.audio; }).length;
-      say('讀到 narration.json，' + n + ' 頁有旁白。按播放開始。');
+      timing = j;
+      lyrics = j.pages.map(function(p){ return p.lyric || ''; });
+      $('srcBox').value = j.audio || DEFAULT_SRC;
+      $('lyricsBox').value = lyrics.join('\n');
+      say($('status'), '讀到 timing.json，' + j.pages.length + ' 頁都有時間點。按播放。', 'ok');
     })
     .catch(function(){
-      say('還沒有 narration.json，現在只會播配樂、不會自動翻頁。\n先去錄音工作台（narrate.html）錄好旁白並下載。', 'bad');
+      $('srcBox').value = DEFAULT_SRC;
+      say($('status'), '還沒有 timing.json，現在按播放只會放音樂、不會自動翻頁。\n切到「校時」分頁，聽一次歌把每頁的翻頁時間點按出來。');
     });
 
-  function playPage(i){
-    if (!playing) return;
-    if (i >= TOTAL){ finish('播完了。'); return; }
-    cur = i;
-    if (flip.getCurrentPageIndex() !== i) flip.turnToPage(i);
-
-    var item = manifest && manifest.pages[i];
-    if (!item || !item.audio){
-      say('第 ' + (i+1) + ' 頁沒有旁白，兩秒後翻下一頁。');
-      setTimeout(function(){ playPage(i+1); }, 2000);
-      return;
-    }
-    say('正在念第 ' + (i+1) + ' 頁…');
-    bgm.volume = duckVol();
-    narr.src = item.audio;
-    narr.play().catch(function(err){
-      say('第 ' + (i+1) + ' 頁的音檔播不出來（' + item.audio + '）：' + (err && err.name || err), 'bad');
-      setTimeout(function(){ playPage(i+1); }, 1200);
-    });
+  // ── 分頁切換 ─────────────────────────────────────
+  function setMode(m){
+    mode = m;
+    $('tabPlay').classList.toggle('on', m === 'play');
+    $('tabSync').classList.toggle('on', m === 'sync');
+    $('panelPlay').classList.toggle('on', m === 'play');
+    $('panelSync').classList.toggle('on', m === 'sync');
+    audio.pause(); audio.currentTime = 0;
+    playing = false; syncing = false;
+    $('mark').disabled = true;
   }
+  $('tabPlay').addEventListener('click', function(){ setMode('play'); });
+  $('tabSync').addEventListener('click', function(){ setMode('sync'); });
 
-  narr.addEventListener('ended', function(){
-    bgm.volume = baseVol();
-    setTimeout(function(){ playPage(cur + 1); }, 600);   // 留一點呼吸再翻頁
-  });
-
-  playBtn.addEventListener('click', function(){
+  // ── 播放模式 ─────────────────────────────────────
+  $('play').addEventListener('click', function(){
     if (playing) return;
-    playing = true;
-    if (bgmOn.checked){
-      bgm.src = BGM_URL;
-      bgm.volume = baseVol();
-      bgm.play().catch(function(){ say('配樂載不動，只播旁白。'); });
+    audio.src = ($('srcBox').value || DEFAULT_SRC);
+    audio.volume = Number($('vol').value)/100;
+    audio.play().then(function(){
+      playing = true;
+      say($('status'), timing ? '播放中，會跟著歌翻頁。' : '播放中（沒有 timing.json，不會自動翻頁）。');
+    }).catch(function(err){
+      say($('status'), '播不出來：' + (err && err.name || err) + '\n音檔網址可能失效了，去校時分頁換一個。', 'bad');
+    });
+  });
+  $('stop').addEventListener('click', function(){
+    audio.pause(); audio.currentTime = 0; playing = false;
+    say($('status'), '已停止。');
+  });
+  $('vol').addEventListener('input', function(){ audio.volume = Number(this.value)/100; });
+
+  audio.addEventListener('timeupdate', function(){
+    var t = audio.currentTime;
+    $('clock').textContent = fmt(t) + ' / ' + fmt(audio.duration);
+    $('syncClock').textContent = fmt(t) + ' / ' + fmt(audio.duration);
+
+    if (mode === 'play' && playing && timing){
+      var target = 0;
+      for (var i=0;i<timing.pages.length;i++){
+        if (t >= timing.pages[i].at) target = i; else break;
+      }
+      if (flip.getCurrentPageIndex() !== target) flip.turnToPage(target);
+      var ly = timing.pages[target] && timing.pages[target].lyric;
+      $('lyric').textContent = ly || '';
+      $('lyric').className = 'lyric' + (ly ? '' : ' dim');
     }
-    playPage(flip.getCurrentPageIndex());
   });
-
-  stopBtn.addEventListener('click', function(){ finish('已停止。'); });
-
-  function finish(msg){
+  audio.addEventListener('ended', function(){
     playing = false;
-    narr.pause(); narr.currentTime = 0;
-    bgm.pause(); bgm.currentTime = 0;
-    say(msg);
-  }
+    if (mode === 'play') say($('status'), '播完了。');
+  });
 
-  bgmVol.addEventListener('input', function(){
-    bgm.volume = (narr.paused ? baseVol() : duckVol());
+  // ── 校時模式 ─────────────────────────────────────
+  function markLabel(){
+    var nextPage = marks.length + 2;   // marks[0] 標的是「翻到第 2 頁」
+    if (nextPage > TOTAL) return '已經標到最後一頁了';
+    return '翻到下一頁（第 ' + (nextPage-1) + ' 頁 → 第 ' + nextPage + ' 頁）';
+  }
+  function renderMarks(){
+    $('mark').textContent = markLabel();
+    $('mark').disabled = !syncing || marks.length >= TOTAL - 1;
+    var lines = $('lyricsBox').value.split('\n');
+    var html = '<div class="mk"><span class="n">P01</span><span class="t">0:00</span><span class="l">'
+      + (lines[0] ? lines[0] : '（開頭）') + '</span></div>';
+    marks.forEach(function(at, i){
+      html += '<div class="mk"><span class="n">P' + String(i+2).padStart(2,'0') + '</span>'
+        + '<span class="t">' + fmt(at) + '</span>'
+        + '<span class="l">' + (lines[i+1] || '') + '</span></div>';
+    });
+    $('marks').innerHTML = html;
+  }
+  $('lyricsBox').addEventListener('input', renderMarks);
+
+  $('syncStart').addEventListener('click', function(){
+    audio.src = ($('srcBox').value || DEFAULT_SRC);
+    audio.currentTime = 0;
+    audio.volume = Number($('vol').value)/100;
+    audio.play().then(function(){
+      syncing = true;
+      flip.turnToPage(0);
+      say($('syncStatus'), '播放中。聽到該翻頁的地方就按下面那顆按鈕。');
+      renderMarks();
+    }).catch(function(err){
+      say($('syncStatus'), '播不出來：' + (err && err.name || err), 'bad');
+    });
   });
-  bgmOn.addEventListener('change', function(){
-    if (!bgmOn.checked) bgm.pause();
-    else if (playing){ bgm.src = BGM_URL; bgm.volume = duckVol(); bgm.play().catch(function(){}); }
+
+  $('mark').addEventListener('click', function(){
+    if (!syncing) return;
+    marks.push(Number(audio.currentTime.toFixed(2)));
+    var pageIdx = marks.length;               // 剛標完要翻到的頁 index
+    flip.turnToPage(Math.min(pageIdx, TOTAL-1));
+    say($('syncStatus'), '記下第 ' + (pageIdx+1) + ' 頁在 ' + fmt(marks[marks.length-1]) + '。', 'ok');
+    renderMarks();
+    if (marks.length >= TOTAL - 1){
+      say($('syncStatus'), '全部標完了，可以按「下載 timing.json」。', 'ok');
+    }
   });
+
+  $('syncUndo').addEventListener('click', function(){
+    if (!marks.length) return;
+    marks.pop();
+    flip.turnToPage(marks.length);
+    say($('syncStatus'), '退回一格，現在標到第 ' + (marks.length+1) + ' 頁。');
+    renderMarks();
+  });
+  $('syncReset').addEventListener('click', function(){
+    marks = []; audio.pause(); audio.currentTime = 0; syncing = false;
+    flip.turnToPage(0);
+    say($('syncStatus'), '已清空。按「開始校時」重來。');
+    renderMarks();
+  });
+
+  $('dlTiming').addEventListener('click', function(){
+    var lines = $('lyricsBox').value.split('\n');
+    var pages = [];
+    for (var i=0;i<TOTAL;i++){
+      pages.push({
+        page: i+1,
+        at: i === 0 ? 0 : (marks[i-1] !== undefined ? marks[i-1] : null),
+        image: PAGES[i],
+        lyric: (lines[i] || '').trim()
+      });
+    }
+    var out = { audio: ($('srcBox').value || DEFAULT_SRC), total: TOTAL, pages: pages };
+    var missing = pages.filter(function(p){ return p.at === null; }).length;
+    var blob = new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'timing.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    say($('syncStatus'),
+      missing ? ('下載了，但還有 ' + missing + ' 頁沒標到時間（那幾頁不會自動翻）。')
+              : '下載完成。把 timing.json 放在這個資料夾，回播放分頁重整就會跟著唱翻頁。', missing ? 'bad' : 'ok');
+  });
+
+  renderMarks();
 })();
 </script>
 </body>
