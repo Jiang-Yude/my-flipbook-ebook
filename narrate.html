@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>旁白錄音工作台｜翻頁電子書</title>
+<script src="vendor/page-flip.browser.js"></script>
+<style>
+  :root{ --bg:#f4f1ea; --card:#fff; --ink:#2a251f; --muted:#6f665b; --line:#ded7ca;
+         --brand:#2f6f5e; --rec:#b3372c; --ok:#1f7a4d; --warn:#8a5a12; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#17150f; --card:#221f19; --ink:#efe9dd; --muted:#a89e90; --line:#3a342a;
+           --brand:#4f9c85; --rec:#d4675a; --ok:#5fc593; --warn:#d9ac5e; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;
+    font-size:17px;line-height:1.7}
+  .top{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+    padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .top b{font-size:18px}
+  .badge{font-size:14px;color:var(--muted);background:rgba(127,127,127,.12);
+    padding:4px 10px;border-radius:999px}
+  .layout{display:grid;grid-template-columns:1fr 360px;gap:20px;max-width:1400px;margin:0 auto;padding:18px 16px 40px}
+  @media (max-width:1000px){ .layout{grid-template-columns:1fr} }
+  #book{width:100%;max-width:760px;margin:0 auto}
+  .page{background:var(--card);overflow:hidden}
+  .page img{width:100%;height:100%;object-fit:cover;display:block}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;
+    position:sticky;top:70px;align-self:start}
+  .panel h2{font-size:19px;margin:0 0 4px}
+  .panel .sub{font-size:15px;color:var(--muted);margin:0 0 14px}
+  button{font:inherit;font-size:17px;font-weight:600;border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;cursor:pointer;background:var(--card);color:var(--ink);width:100%;margin-bottom:8px}
+  button.primary{background:var(--brand);color:#fff;border-color:transparent}
+  button.rec{background:var(--rec);color:#fff;border-color:transparent}
+  button:disabled{opacity:.45;cursor:default}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .row button{margin-bottom:0}
+  .log{font-size:15px;color:var(--muted);background:rgba(127,127,127,.10);
+    border-radius:8px;padding:9px 12px;margin-top:10px;min-height:1.5em;white-space:pre-wrap}
+  .log.ok{color:var(--ok)} .log.bad{color:var(--rec)}
+  .list{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  .item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:15px}
+  .item:last-child{border-bottom:0}
+  .item .n{flex:0 0 46px;font-weight:700;color:var(--muted)}
+  .item .s{flex:1}
+  .item .s.done{color:var(--ok);font-weight:600}
+  .item .s.none{color:var(--muted)}
+  .item audio{height:32px;max-width:150px}
+  .note{font-size:14px;color:var(--muted);background:rgba(217,172,94,.16);
+    border-left:3px solid var(--warn);border-radius:0 8px 8px 0;padding:9px 11px;margin-top:12px}
+  textarea{width:100%;min-height:90px;font:inherit;font-size:15px;padding:10px;border-radius:9px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <b>旁白錄音工作台</b>
+  <span class="badge" id="pgBadge">第 1 頁</span>
+  <span class="badge" id="recBadge">未錄音</span>
+  <span class="badge" id="envBadge"></span>
+</div>
+
+<div class="layout">
+  <div>
+    <div id="book"></div>
+    <div class="row" style="max-width:760px;margin:14px auto 0;">
+      <button id="prev">← 上一頁</button>
+      <button id="next">下一頁 →</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>錄這一頁的旁白</h2>
+    <p class="sub">一頁一段。講壞了就只重錄這一頁，不用從頭來。</p>
+
+    <button id="recBtn" class="rec">● 開始錄這一頁</button>
+    <button id="playBtn" disabled>▶ 試聽這一頁</button>
+    <div class="row">
+      <button id="reRec" disabled>重錄這頁</button>
+      <button id="dlOne" disabled>下載這頁</button>
+    </div>
+
+    <div class="log" id="log">按「開始錄」會跳出麥克風授權，允許之後就可以講了。</div>
+
+    <h2 style="margin-top:20px;">這一頁的講稿</h2>
+    <p class="sub">先寫好再念比較順。內容會跟著匯出。</p>
+    <textarea id="script" placeholder="這一頁想講的話…"></textarea>
+
+    <div class="list" id="list"></div>
+
+    <button id="dlAll" class="primary" style="margin-top:14px;">下載全部（音檔＋narration.json）</button>
+    <div class="note">
+      錄音檔只存在這台電腦的瀏覽器裡，關掉分頁還在，但清瀏覽器資料就沒了。
+      錄完記得按「下載全部」，把檔案放進 <b>audio/</b> 資料夾。
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── 頁面素材：跟 index.html 同一批圖 ───────────────────────
+  var TOTAL = 11;
+  var PAGES = [];
+  for (var i=1;i<=TOTAL;i++){
+    PAGES.push('images/page-' + String(i).padStart(2,'0') + '.jpg');
+  }
+  // ──────────────────────────────────────────────────────
+
+  var bookEl = document.getElementById('book');
+  PAGES.forEach(function(src, i){
+    var page = document.createElement('div');
+    page.className = 'page';
+    if (i === 0 || i === TOTAL - 1) page.setAttribute('data-density','hard');
+    var img = document.createElement('img');
+    img.src = src; img.alt = '第 ' + (i+1) + ' 頁'; img.loading = 'lazy';
+    page.appendChild(img);
+    bookEl.appendChild(page);
+  });
+
+  var flip = new St.PageFlip(bookEl, {
+    width:900, height:900, size:'stretch',
+    minWidth:220, maxWidth:900, minHeight:220, maxHeight:900,
+    showCover:true, usePortrait:true, maxShadowOpacity:0.45,
+    flippingTime:700, mobileScrollSupport:false, autoSize:true
+  });
+  flip.loadFromHTML(bookEl.querySelectorAll('.page'));
+
+  var state = 'read';
+  flip.on('changeState', function(e){ state = e.data; });
+  flip.on('flip', function(){ onPageChange(); });
+
+  var pgBadge = document.getElementById('pgBadge');
+  var recBadge = document.getElementById('recBadge');
+  var envBadge = document.getElementById('envBadge');
+  var logBox = document.getElementById('log');
+  var recBtn = document.getElementById('recBtn');
+  var playBtn = document.getElementById('playBtn');
+  var reRec = document.getElementById('reRec');
+  var dlOne = document.getElementById('dlOne');
+  var dlAll = document.getElementById('dlAll');
+  var scriptBox = document.getElementById('script');
+  var listBox = document.getElementById('list');
+
+  var takes = {};      // { pageIndex: {blob, ext, dur} }
+  var scripts = {};    // { pageIndex: '講稿' }
+  var mediaRec = null, chunks = [], recStart = 0, curPage = 0;
+
+  // 環境檢查：getUserMedia 只在 https 或 localhost 可用
+  var secure = window.isSecureContext;
+  var hasRec = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  envBadge.textContent = secure && hasRec ? '可錄音' : '不能錄音';
+  envBadge.style.color = secure && hasRec ? 'var(--ok)' : 'var(--rec)';
+  if (!secure){
+    say('這個頁面不是用 https 或 localhost 開的，瀏覽器不會給麥克風權限。\n請用本機伺服器開（終端機在這個資料夾跑 python3 -m http.server 8080，再開 http://localhost:8080/narrate.html）。','bad');
+    recBtn.disabled = true;
+  } else if (!hasRec){
+    say('這個瀏覽器不支援錄音，請改用 Chrome 或 Safari。','bad');
+    recBtn.disabled = true;
+  }
+
+  function say(msg, cls){ logBox.textContent = msg; logBox.className = 'log' + (cls?' '+cls:''); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function onPageChange(){
+    curPage = flip.getCurrentPageIndex();
+    pgBadge.textContent = '第 ' + (curPage+1) + ' 頁';
+    scriptBox.value = scripts[curPage] || '';
+    var t = takes[curPage];
+    recBadge.textContent = t ? ('已錄 ' + t.dur.toFixed(1) + ' 秒') : '未錄音';
+    recBadge.style.color = t ? 'var(--ok)' : 'var(--muted)';
+    playBtn.disabled = !t; reRec.disabled = !t; dlOne.disabled = !t;
+    renderList();
+  }
+
+  scriptBox.addEventListener('input', function(){ scripts[curPage] = scriptBox.value; renderList(); });
+
+  document.getElementById('prev').addEventListener('click', function(){ if(state==='read') flip.flipPrev(); });
+  document.getElementById('next').addEventListener('click', function(){ if(state==='read') flip.flipNext(); });
+
+  function pickMime(){
+    var cands = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/aac'];
+    for (var i=0;i<cands.length;i++){
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(cands[i])) return cands[i];
+    }
+    return '';
+  }
+
+  recBtn.addEventListener('click', function(){
+    if (mediaRec && mediaRec.state === 'recording'){ mediaRec.stop(); return; }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      var mime = pickMime();
+      chunks = [];
+      mediaRec = mime ? new MediaRecorder(stream, {mimeType:mime}) : new MediaRecorder(stream);
+      mediaRec.ondataavailable = function(e){ if (e.data && e.data.size) chunks.push(e.data); };
+      mediaRec.onstop = function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        var type = mediaRec.mimeType || 'audio/webm';
+        var blob = new Blob(chunks, {type:type});
+        var dur = (performance.now() - recStart) / 1000;
+        var ext = type.indexOf('mp4') >= 0 || type.indexOf('aac') >= 0 ? 'm4a' : 'webm';
+        takes[curPage] = { blob: blob, ext: ext, dur: dur };
+        recBtn.textContent = '● 開始錄這一頁';
+        recBtn.classList.add('rec');
+        say('第 ' + (curPage+1) + ' 頁錄好了，' + dur.toFixed(1) + ' 秒。可以先試聽。', 'ok');
+        onPageChange();
+      };
+      recStart = performance.now();
+      mediaRec.start();
+      recBtn.textContent = '■ 停止（錄音中）';
+      recBtn.classList.remove('rec');
+      recBadge.textContent = '錄音中…';
+      recBadge.style.color = 'var(--rec)';
+      say('錄音中。念完按「停止」。', null);
+    }).catch(function(err){
+      say('拿不到麥克風：' + (err && err.name || err) + '\n瀏覽器網址列左邊可以重新允許麥克風權限。', 'bad');
+    });
+  });
+
+  playBtn.addEventListener('click', function(){
+    var t = takes[curPage]; if (!t) return;
+    var a = new Audio(URL.createObjectURL(t.blob));
+    a.play();
+  });
+
+  reRec.addEventListener('click', function(){
+    delete takes[curPage];
+    say('第 ' + (curPage+1) + ' 頁已清掉，可以重錄。', null);
+    onPageChange();
+  });
+
+  function download(blob, name){
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  dlOne.addEventListener('click', function(){
+    var t = takes[curPage]; if (!t) return;
+    download(t.blob, 'page-' + pad(curPage+1) + '.' + t.ext);
+  });
+
+  dlAll.addEventListener('click', function(){
+    var keys = Object.keys(takes).map(Number).sort(function(a,b){return a-b;});
+    if (!keys.length){ say('還沒有任何錄音。', 'bad'); return; }
+    var manifest = { total: TOTAL, pages: [] };
+    for (var i=0;i<TOTAL;i++){
+      var t = takes[i];
+      manifest.pages.push({
+        page: i+1,
+        image: PAGES[i],
+        audio: t ? ('audio/page-' + pad(i+1) + '.' + t.ext) : null,
+        duration: t ? Number(t.dur.toFixed(2)) : null,
+        script: scripts[i] || ''
+      });
+    }
+    keys.forEach(function(k, idx){
+      setTimeout(function(){
+        download(takes[k].blob, 'page-' + pad(k+1) + '.' + takes[k].ext);
+      }, idx * 400);
+    });
+    setTimeout(function(){
+      download(new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}), 'narration.json');
+      say('全部下載完成（' + keys.length + ' 個音檔＋narration.json）。\n把音檔放進 audio/，narration.json 放在這個資料夾。', 'ok');
+    }, keys.length * 400 + 300);
+  });
+
+  function renderList(){
+    var html = '';
+    for (var i=0;i<TOTAL;i++){
+      var t = takes[i];
+      var hasScript = (scripts[i]||'').trim().length > 0;
+      html += '<div class="item"><span class="n">P' + pad(i+1) + '</span>'
+        + '<span class="s ' + (t?'done':'none') + '">'
+        + (t ? ('已錄 ' + t.dur.toFixed(1) + ' 秒') : '未錄')
+        + (hasScript ? '　·　有講稿' : '')
+        + '</span></div>';
+    }
+    listBox.innerHTML = html;
+  }
+
+  onPageChange();
+})();
+</script>
+</body>
+</html>
